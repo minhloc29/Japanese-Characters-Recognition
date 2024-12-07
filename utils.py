@@ -1,12 +1,9 @@
-from PIL import Image, ImageDraw, ImageFont
+import tensorflow as tf
 import numpy as np
-import cv2
-from torchvision import transforms
-import torch
+from PIL import Image
+
 def get_mask(img, labels):
-    # input: 
-    #     img: url
-    #     label: str
+   
     img = Image.open(img).convert('RGBA')
     img = np.array(img)
     mask = np.zeros((img.shape[0], img.shape[1], 2), dtype='float32')
@@ -16,25 +13,29 @@ def get_mask(img, labels):
             x, y, w, h = int(x), int(y), int(w), int(h)
             if x + w >= img.shape[1] or y + h >= img.shape[0]:
                 continue
-            mask[y: y + h, x: x + w, 0] = 1 #giving 1 to region that are 1
+            # Mark region with 1
+            mask[y:y + h, x:x + w, 0] = 1  
+            # Mark center region with 1
             radius = 6
-            mask[y + h // 2 - radius: y + h // 2 + radius + 1, x +
-                 w // 2 - radius: x + w // 2 + radius + 1, 1] = 1 #giving 1 to a whole region near the center-point
+            mask[y + h // 2 - radius: y + h // 2 + radius + 1, 
+                 x + w // 2 - radius: x + w // 2 + radius + 1, 1] = 1
     return mask
 
-def load_image(img_url, img_size = (512, 512), expand_dim = False):
-    #input: image_url, output: tensor, shape: cxhxw
+def load_image(img_url, img_size=(512, 512), expand_dim=False):
+    
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-    transform = transforms.Compose([
-    transforms.ToTensor(),  # Converts image to Tensor, scaling values to [0, 1]
-    transforms.Normalize(mean=mean, std=std),  # Normalizes each channel (R, G, B)
-])
-    img = cv2.imread(img_url)[:, :, ::-1] #conver to RGB, cuz normally cv2.imread reads the BGR
-    h, w, c = img.shape
-    img = cv2.resize(img, img_size)
-    img = Image.fromarray(img)
-    img = transform(img)
+    
+    # Read and preprocess the image
+    img = tf.io.read_file(img_url)
+    img = tf.image.decode_image(img, channels=3)
+    img = tf.image.resize(img, img_size)  # Resize to target size
+    img = img / 255.0  # Scale to [0, 1]
+    
+    # Normalize using mean and std
+    img = (img - mean) / std
+    
     if expand_dim:
-        img = torch.unsqueeze(0)
+        img = tf.expand_dims(img, axis=0)  # Add batch dimension
+    
     return img
