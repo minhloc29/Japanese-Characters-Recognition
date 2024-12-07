@@ -27,8 +27,7 @@ class ResidualBlock(tf.keras.layers.Layer):
 class ResNetUNet(Model):
     def __init__(self, img_size=(512, 512), no_channels=3, start_neurons=32, dropout_rate=0.25, **kwargs):
         super(ResNetUNet, self).__init__(**kwargs)
-        self.dropout_rate = dropout_rate
-
+        self.dropout = layers.Dropout(dropout_rate)
         # Downsampling
         self.conv1 = layers.Conv2D(start_neurons * 1, kernel_size=3, padding="same")
         self.block1 = [
@@ -79,7 +78,6 @@ class ResNetUNet(Model):
             ResidualBlock(start_neurons * 1, use_relu=True),
             ResidualBlock(start_neurons * 1, use_relu=False)
         ]
-
         # Output
         self.output_layer = layers.Conv2D(2, kernel_size=1, padding="same", activation="sigmoid")
 
@@ -88,17 +86,17 @@ class ResNetUNet(Model):
         conv1 = self.conv1(inputs)
         for block in self.block1:
             conv1 = block(conv1, training=training)
-        pool1 = layers.Dropout(self.dropout_rate)(self.pool1(conv1), training=training)
+        pool1 = self.dropout(self.pool1(conv1), training=training)
 
         conv2 = self.conv2(pool1)
         for block in self.block2:
             conv2 = block(conv2, training=training)
-        pool2 = layers.Dropout(self.dropout_rate)(self.pool2(conv2), training=training)
+        pool2 = self.dropout(self.pool2(conv2), training=training)
 
         conv3 = self.conv3(pool2)
         for block in self.block3:
             conv3 = block(conv3, training=training)
-        pool3 = layers.Dropout(self.dropout_rate)(self.pool3(conv3), training=training)
+        pool3 = self.dropout(self.pool3(conv3), training=training)
 
         # Middle
         middle = self.middle_conv(pool3)
