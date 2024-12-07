@@ -57,7 +57,7 @@ class JapaneseDataset(Dataset):
             y = np.vstack((y, np.expand_dims(mask, axis=0)))
             X = torch.tensor(np.transpose(X, (0, 3, 1, 2)), dtype=torch.float32)
             y = torch.tensor(np.transpose(y, (0, 3, 1, 2)), dtype=torch.float32)
-            return X, y
+        return X, y
             
         
         
