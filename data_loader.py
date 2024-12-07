@@ -37,10 +37,10 @@ class JapaneseDataset(Dataset):
                 scale_limit = 0.05, border_mode = 0
             )])
     
-    def data_generation(self, ids):
+    def data_generation(self, temp_ids):
         X = np.zeros((0, *self.img_size, self.input_channels))
         y = np.zeros((0, *self.img_size, self.n_classes))
-        for i, id in enumerate(self.ids):
+        for id in temp_ids:
             img = load_image(self.image_urls[id]) #tensor, shape: CxHxW
             img = np.array(img)
             img = np.transpose(img, (2, 1, 0)) #convert to WxHxC
@@ -52,12 +52,8 @@ class JapaneseDataset(Dataset):
                 aug = self.augmentation()(image = img, mask = mask)
                 img = aug['image']
                 mask = aug['mask']
-                
             X = np.vstack((X, np.expand_dims(img, axis=0)))
             y = np.vstack((y, np.expand_dims(mask, axis=0)))
-            X = torch.tensor(np.transpose(X, (0, 3, 1, 2)), dtype=torch.float32)
-            y = torch.tensor(np.transpose(y, (0, 3, 1, 2)), dtype=torch.float32)
+        X = torch.tensor(np.transpose(X, (0, 3, 1, 2)), dtype=torch.float32)
+        y = torch.tensor(np.transpose(y, (0, 3, 1, 2)), dtype=torch.float32)
         return X, y
-            
-        
-        
