@@ -3,8 +3,10 @@ import numpy as np
 from torch.utils.data import Dataset
 from utils import get_mask, load_image
 import torch
+import albumentations as A
+
 class JapaneseDataset(Dataset):
-    def __init__(self, image_urls, labels, batch_size, input_channels = 3, img_size = (512, 512), n_classes = 2, augment = None, shuffle = True):
+    def __init__(self, image_urls, labels, batch_size, input_channels = 3, img_size = (512, 512), n_classes = 2, augment = False, shuffle = True):
         #image_urls: list of image urls as input
         #augment: A_Transform
         self.img_size = img_size
@@ -15,6 +17,7 @@ class JapaneseDataset(Dataset):
         self.labels = labels
         self.augment = augment
         self.ids = range(len(self.image_urls))
+        
     def __len__(self):
         return int(len(self.ids) / self.batch_size)
         
@@ -23,6 +26,16 @@ class JapaneseDataset(Dataset):
         temp_ids = [self.ids[i] for i in indexes]
         X, y = self.data_generation(temp_ids)
         return X, y
+    
+    def augmentation(self):
+        return A.Compose([
+            A.RandomCrop(width=512, height=512, p = 0.75), #randomly crop a rectangular in the images with a specified w,h and probability
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p = 0.2),
+            A.ShiftScaleRotate(
+                p = 0.5, rotate_limit = 1.5,
+                scale_limit = 0.05, border_mode = 0
+            )])
     
     def data_generation(self, ids):
         X = np.zeros((0, *self.img_size, self.input_channels))
@@ -35,8 +48,8 @@ class JapaneseDataset(Dataset):
             mask = get_mask(img = self.image_urls[id], labels= self.labels[id])
             mask = cv2.resize(mask, self.img_size)
             
-            if self.augment is not None:
-                aug = self.augment(image = img, mask = mask)
+            if self.augment:
+                aug = self.augmentation()(image = img, mask = mask)
                 img = aug['image']
                 mask = aug['mask']
                 
