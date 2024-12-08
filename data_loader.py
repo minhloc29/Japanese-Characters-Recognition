@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import cv2
+import albumentations as A
 from utils import get_mask, load_image
 
 class JapaneseDataset(tf.keras.utils.Sequence):
@@ -15,36 +16,35 @@ class JapaneseDataset(tf.keras.utils.Sequence):
         self.augment = augment
         self.shuffle = shuffle
 
-    def augmentation(self, image, mask):
-        
-        if tf.random.uniform(()) < 0.5:
-            image = tf.image.flip_left_right(image)
-            mask = tf.image.flip_left_right(mask)
-
-        image = tf.image.random_brightness(image, max_delta=0.2)
-        image = tf.image.random_contrast(image, lower=0.7, upper=1.3)
-        
-        angles = [0, 90, 180, 270]
-        angle_idx = tf.random.uniform([], minval=0, maxval=len(angles), dtype=tf.int32)
-        angle = angles[angle_idx.numpy()]  # Get the angle using the index
-
-        image = tf.image.rot90(image, k=angle // 90)
-        mask = tf.image.rot90(mask, k=angle // 90)
-
-        return image, mask
+    def augmentation(self):
+        """Define the augmentation pipeline using Albumentations."""
+        return A.Compose([
+            A.RandomCrop(width=512, height=512, p=0.75),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+            A.ShiftScaleRotate(
+                p=0.5, rotate_limit=1.5,
+                scale_limit=0.05, border_mode=0
+            )
+        ])
 
     def process_data(self, image_url, label):
-        image = load_image(image_url)  # Tensor: W x H x C, 512x512x3
-        mask = get_mask(img=image_url, labels=label)  # numpy: W x H x C
-        mask = tf.convert_to_tensor(mask)
-        mask = tf.image.resize(mask, self.img_size)
-
+        # image_url, label: String Tensor
+        image_url = image_url.numpy().decode('utf-8')
+        label = label.numpy().decode('utf-8')
+        image = cv2.imread(image_url) #original image
+        mask = get_mask(img=image, labels=label)  # numpy: 512x512x2
+        image = load_image(image_url)  # numpy: W x H x C, 512x512x3
+        
         if self.augment:
-            image, mask = self.augmentation(image, mask)
+            aug = self.augmentation()(image=image, mask=mask)
+            image = aug['image']
+            mask = aug['mask']
 
         return image, mask
     
     def create_tf_dataset(self):
+        
         dataset = tf.data.Dataset.from_tensor_slices((self.image_urls, self.labels))
 
         # Map the process_data function to the dataset
@@ -52,7 +52,7 @@ class JapaneseDataset(tf.keras.utils.Sequence):
                               num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         if self.shuffle:
-            dataset = dataset.shuffle(buffer_size=1000)
+            dataset = dataset.shuffle(buffer_size=100)
 
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
