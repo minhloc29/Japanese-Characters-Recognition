@@ -1,11 +1,14 @@
 import tensorflow as tf
 import numpy as np
-from PIL import Image
 
 def get_mask(img, labels):
    
-    img = Image.open(img).convert('RGBA')
-    img = np.array(img)
+    img = tf.io.read_file(img)  # Read image file
+    img = tf.image.decode_image(img, channels=3)  # Decode the image into a tensor
+    img = tf.image.convert_image_dtype(img, dtype=tf.float32)  # Convert the image to [0, 1] range
+    
+    img = tf.image.resize(img, (512, 512))  # Resize to a fixed size (optional) 
+    img = img.numpy()  # Convert tensor to numpy array for mask processing
     mask = np.zeros((img.shape[0], img.shape[1], 2), dtype='float32')
     if isinstance(labels, str):
         labels = np.array(labels.split(' ')).reshape(-1, 5)
@@ -19,7 +22,8 @@ def get_mask(img, labels):
             radius = 6
             mask[y + h // 2 - radius: y + h // 2 + radius + 1, 
                  x + w // 2 - radius: x + w // 2 + radius + 1, 1] = 1
-    return mask
+    mask = tf.convert_to_tensor(mask, dtype=tf.float32)
+    return mask #tensor: W x H x C
 
 def load_image(img_url, img_size=(512, 512), expand_dim=False):
     
@@ -38,4 +42,6 @@ def load_image(img_url, img_size=(512, 512), expand_dim=False):
     if expand_dim:
         img = tf.expand_dims(img, axis=0)  # Add batch dimension
     
-    return img
+    return img #Tensor: W x H x C
+
+
