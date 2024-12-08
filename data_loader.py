@@ -66,7 +66,7 @@ class JapaneseDataset(tf.keras.utils.Sequence):
             X[i] = img
             y[i] = mask
 
-        X = tf.convert_to_tensor(X, dtype=tf.bfloat16)
-        y = tf.convert_to_tensor(y, dtype=tf.bfloat16)
+        X = tf.convert_to_tensor(X, dtype=tf.float32)
+        y = tf.convert_to_tensor(y, dtype=tf.float32)
 
         return X, y
