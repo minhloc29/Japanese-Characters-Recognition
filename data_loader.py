@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import albumentations as A
 import cv2
 from utils import get_mask, load_image
 
@@ -14,59 +13,49 @@ class JapaneseDataset(tf.keras.utils.Sequence):
         self.n_classes = n_classes
         self.labels = labels
         self.augment = augment
-        self.ids = np.arange(len(self.image_urls))
         self.shuffle = shuffle
-        self.on_epoch_end()
 
-    def __len__(self):
-        """Return the number of batches per epoch."""
-        return int(np.floor(len(self.ids) / self.batch_size))
+    def augmentation(self, image, mask):
+        
+        if tf.random.uniform(()) < 0.5:
+            image = tf.image.flip_left_right(image)
+            mask = tf.image.flip_left_right(mask)
 
-    def __getitem__(self, index):
-        """Generate one batch of data."""
-        indexes = self.ids[index * self.batch_size:(index + 1) * self.batch_size]
-        X, y = self.data_generation(indexes)
-        return X, y
+        image = tf.image.random_brightness(image, max_delta=0.2)
+        image = tf.image.random_contrast(image, lower=0.7, upper=1.3)
+        
+        angles = [0, 90, 180, 270]
+        angle_idx = tf.random.uniform([], minval=0, maxval=len(angles), dtype=tf.int32)
+        angle = angles[angle_idx.numpy()]  # Get the angle using the index
 
-    def on_epoch_end(self):
-        """Shuffle data at the end of each epoch.""" #cuz you want each epoch to be randomly shuffle
+        image = tf.image.rot90(image, k=angle // 90)
+        mask = tf.image.rot90(mask, k=angle // 90)
+
+        return image, mask
+
+    def process_data(self, image_url, label):
+        image = load_image(image_url)  # Tensor: W x H x C, 512x512x3
+        mask = get_mask(img=image_url, labels=label)  # numpy: W x H x C
+        mask = tf.convert_to_tensor(mask)
+        mask = tf.image.resize(mask, self.img_size)
+
+        if self.augment:
+            image, mask = self.augmentation(image, mask)
+
+        return image, mask
+    
+    def create_tf_dataset(self):
+        dataset = tf.data.Dataset.from_tensor_slices((self.image_urls, self.labels))
+
+        # Map the process_data function to the dataset
+        dataset = dataset.map(lambda img_url, label: tf.py_function(self.process_data, [img_url, label], [tf.float32, tf.float32]),
+                              num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
         if self.shuffle:
-            np.random.shuffle(self.ids)
+            dataset = dataset.shuffle(buffer_size=1000)
 
-    def augmentation(self):
-        """Define the augmentation pipeline using Albumentations."""
-        return A.Compose([
-            A.RandomCrop(width=512, height=512, p=0.75),
-            A.HorizontalFlip(p=0.5),
-            A.RandomBrightnessContrast(p=0.2),
-            A.ShiftScaleRotate(
-                p=0.5, rotate_limit=1.5,
-                scale_limit=0.05, border_mode=0
-            )
-        ])
+        dataset = dataset.batch(self.batch_size)
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        
+        return dataset
 
-    def data_generation(self, indexes):
-        """Generate data for the batch."""
-        X = np.zeros((len(indexes), *self.img_size, self.input_channels), dtype=np.float32)
-        y = np.zeros((len(indexes), *self.img_size, self.n_classes), dtype=np.float32)
-
-        for i, idx in enumerate(indexes):
-            img = load_image(self.image_urls[idx])  # Load and preprocess image
-            img = np.array(img)
-            img = np.transpose(img, (1, 0, 2))  # Convert to WxHxC
-
-            mask = get_mask(img=self.image_urls[idx], labels=self.labels[idx])
-            mask = cv2.resize(mask, self.img_size)
-
-            if self.augment:
-                aug = self.augmentation()(image=img, mask=mask)
-                img = aug['image']
-                mask = aug['mask']
-
-            X[i] = img
-            y[i] = mask
-
-        X = tf.convert_to_tensor(X, dtype=tf.float32)
-        y = tf.convert_to_tensor(y, dtype=tf.float32)
-
-        return X, y
