@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import albumentations as A
-from utils import get_mask, load_image
+from utils_old import get_mask, load_image
 
 class JapaneseDataset(tf.keras.utils.Sequence):
     def __init__(self, image_urls, labels, batch_size, input_channels=3, img_size=(512, 512), n_classes=2, augment=False, shuffle=True):
@@ -28,6 +28,11 @@ class JapaneseDataset(tf.keras.utils.Sequence):
             )
         ])
 
+    def fixup_shape(self, images, mask):
+        images.set_shape([*self.img_size, self.input_channels])
+        mask.set_shape([*self.img_size, self.n_classes])
+        return images, mask
+    
     def process_data(self, image_url, label):
         # image_url, label: String Tensor
         image_url = image_url.numpy().decode('utf-8')
@@ -50,7 +55,7 @@ class JapaneseDataset(tf.keras.utils.Sequence):
         # Map the process_data function to the dataset
         dataset = dataset.map(lambda img_url, label: tf.py_function(self.process_data, [img_url, label], [tf.float32, tf.float32]),
                               num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
+        dataset = dataset.map(self.fixup_shape)
         if self.shuffle:
             dataset = dataset.shuffle(buffer_size=100)
 
