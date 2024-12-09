@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import albumentations as A
-from utils_old import get_mask, load_image
+from utils import get_mask, load_image
 
 class JapaneseDataset(tf.keras.utils.Sequence):
     def __init__(self, image_urls, labels, batch_size, input_channels=3, img_size=(512, 512), n_classes=2, augment=False, shuffle=True):
