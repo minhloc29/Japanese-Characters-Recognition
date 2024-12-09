@@ -1,127 +1,116 @@
 import tensorflow as tf
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
+from tensorflow.keras import models
 
-# Residual Block
-class ResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, filters, use_relu=True, **kwargs):
-        super(ResidualBlock, self).__init__(**kwargs)
-        self.use_relu = use_relu
-        self.conv1 = layers.Conv2D(filters, kernel_size=3, padding="same")
-        self.bn1 = layers.BatchNormalization()
-        self.conv2 = layers.Conv2D(filters, kernel_size=3, padding="same")
-        self.bn2 = layers.BatchNormalization()
+def batch_activate(x):
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    return x
 
-    def call(self, inputs, training=False):
-        residual = inputs
-        x = self.conv1(inputs)
-        x = self.bn1(x, training=training)
-        if self.use_relu:
-            x = tf.nn.relu(x)
-        x = self.conv2(x)
-        x = self.bn2(x, training=training)
-        if self.use_relu:
-            x = tf.nn.relu(x)
-        return x + residual
 
-# ResNet-UNet
-class ResNetUNet(Model):
-    def __init__(self, img_size=(512, 512), no_channels=3, start_neurons=32, dropout_rate=0.25, **kwargs):
-        super(ResNetUNet, self).__init__(**kwargs)
-        self.dropout = layers.Dropout(dropout_rate)
-        # Downsampling
-        self.conv1 = layers.Conv2D(start_neurons * 1, kernel_size=3, padding="same")
-        self.block1 = [
-            ResidualBlock(start_neurons * 1, use_relu=True),
-            ResidualBlock(start_neurons * 1, use_relu=False)
-        ]
-        self.pool1 = layers.MaxPooling2D(pool_size=(2, 2))
+def convolution_block(x,
+                      filters,
+                      size,
+                      strides=(1, 1),
+                      padding='same',
+                      activation=True):
+    x = layers.Conv2D(filters, size, strides=strides, padding=padding)(x)
+    if activation:
+        x = batch_activate(x)
+    return x
 
-        self.conv2 = layers.Conv2D(start_neurons * 2, kernel_size=3, padding="same")
-        self.block2 = [
-            ResidualBlock(start_neurons * 2, use_relu=True),
-            ResidualBlock(start_neurons * 2, use_relu=False)
-        ]
-        self.pool2 = layers.MaxPooling2D(pool_size=(2, 2))
 
-        self.conv3 = layers.Conv2D(start_neurons * 4, kernel_size=3, padding="same")
-        self.block3 = [
-            ResidualBlock(start_neurons * 4, use_relu=True),
-            ResidualBlock(start_neurons * 4, use_relu=False)
-        ]
-        self.pool3 = layers.MaxPooling2D(pool_size=(2, 2))
+def residual_block(block_input,
+                   num_filters=16,
+                   use_batch_activate=False):
+    x = batch_activate(block_input)
+    x = convolution_block(x, num_filters, (3, 3))
+    x = convolution_block(x, num_filters, (3, 3), activation=False)
+    x = layers.Add()([x, block_input])
+    if use_batch_activate:
+        x = batch_activate(x)
+    return x
 
-        # Middle
-        self.middle_conv = layers.Conv2D(start_neurons * 8, kernel_size=3, padding="same")
-        self.middle_block = [
-            ResidualBlock(start_neurons * 8, use_relu=True),
-            ResidualBlock(start_neurons * 8, use_relu=False)
-        ]
+def resnet_unet(img_size=(512, 512),
+                no_channels=3,
+                start_neurons=32,
+                dropout_rate=0.25):
 
-        # Upsampling
-        self.deconv3 = layers.Conv2DTranspose(start_neurons * 4, kernel_size=3, strides=2, padding="same")
-        self.uconv3 = layers.Conv2D(start_neurons * 4, kernel_size=3, padding="same")
-        self.block_u3 = [
-            ResidualBlock(start_neurons * 4, use_relu=True),
-            ResidualBlock(start_neurons * 4, use_relu=False)
-        ]
+    # inner
+    input_layer = layers.Input(name='the_input',
+                               shape=(*img_size, no_channels),  # noqa
+                               dtype='float32')
 
-        self.deconv2 = layers.Conv2DTranspose(start_neurons * 2, kernel_size=3, strides=2, padding="same")
-        self.uconv2 = layers.Conv2D(start_neurons * 2, kernel_size=3, padding="same")
-        self.block_u2 = [
-            ResidualBlock(start_neurons * 2, use_relu=True),
-            ResidualBlock(start_neurons * 2, use_relu=False)
-        ]
+    # down 1
+    conv1 = layers.Conv2D(start_neurons * 1, (3, 3),
+                          activation=None, padding="same")(input_layer)
+    conv1 = residual_block(conv1, start_neurons * 1)
+    conv1 = residual_block(conv1, start_neurons * 1, True)
+    pool1 = layers.MaxPooling2D((2, 2))(conv1)
+    pool1 = layers.Dropout(dropout_rate)(pool1)
 
-        self.deconv1 = layers.Conv2DTranspose(start_neurons * 1, kernel_size=3, strides=2, padding="same")
-        self.uconv1 = layers.Conv2D(start_neurons * 1, kernel_size=3, padding="same")
-        self.block_u1 = [
-            ResidualBlock(start_neurons * 1, use_relu=True),
-            ResidualBlock(start_neurons * 1, use_relu=False)
-        ]
-        # Output
-        self.output_layer = layers.Conv2D(2, kernel_size=1, padding="same", activation="sigmoid")
+    # down 2
+    conv2 = layers.Conv2D(start_neurons * 2, (3, 3),
+                          activation=None, padding="same")(pool1)
+    conv2 = residual_block(conv2, start_neurons * 2)
+    conv2 = residual_block(conv2, start_neurons * 2, True)
+    pool2 = layers.MaxPooling2D((2, 2))(conv2)
+    pool2 = layers.Dropout(dropout_rate)(pool2)
 
-    def call(self, inputs, training=False):
-        # Downsampling
-        conv1 = self.conv1(inputs)
-        for block in self.block1:
-            conv1 = block(conv1, training=training)
-        pool1 = self.dropout(self.pool1(conv1), training=training)
+    # down 3
+    conv3 = layers.Conv2D(start_neurons * 4, (3, 3),
+                          activation=None, padding="same")(pool2)
+    conv3 = residual_block(conv3, start_neurons * 4)
+    conv3 = residual_block(conv3, start_neurons * 4, True)
+    pool3 = layers.MaxPooling2D((2, 2))(conv3)
+    pool3 = layers.Dropout(dropout_rate)(pool3)
 
-        conv2 = self.conv2(pool1)
-        for block in self.block2:
-            conv2 = block(conv2, training=training)
-        pool2 = self.dropout(self.pool2(conv2), training=training)
+    # middle
+    middle = layers.Conv2D(start_neurons * 8, (3, 3),
+                           activation=None, padding="same")(pool3)
+    middle = residual_block(middle, start_neurons * 8)
+    middle = residual_block(middle, start_neurons * 8, True)
 
-        conv3 = self.conv3(pool2)
-        for block in self.block3:
-            conv3 = block(conv3, training=training)
-        pool3 = self.dropout(self.pool3(conv3), training=training)
+    # up 1
+    deconv3 = layers.Conv2DTranspose(
+        start_neurons * 4, (3, 3), strides=(2, 2), padding="same")(middle)
+    uconv3 = layers.concatenate([deconv3, conv3])
+    uconv3 = layers.Dropout(dropout_rate)(uconv3)
 
-        # Middle
-        middle = self.middle_conv(pool3)
-        for block in self.middle_block:
-            middle = block(middle, training=training)
+    uconv3 = layers.Conv2D(start_neurons * 4, (3, 3),
+                           activation=None, padding="same")(uconv3)
+    uconv3 = residual_block(uconv3, start_neurons * 4)
+    uconv3 = residual_block(uconv3, start_neurons * 4, True)
 
-        # Upsampling
-        deconv3 = self.deconv3(middle)
-        uconv3 = tf.concat([deconv3, conv3], axis=-1)
-        uconv3 = self.uconv3(uconv3)
-        for block in self.block_u3:
-            uconv3 = block(uconv3, training=training)
+    # up 2
+    deconv2 = layers.Conv2DTranspose(
+        start_neurons * 2, (3, 3), strides=(2, 2), padding="same")(uconv3)
+    uconv2 = layers.concatenate([deconv2, conv2])
+    uconv2 = layers.Dropout(dropout_rate)(uconv2)
 
-        deconv2 = self.deconv2(uconv3)
-        uconv2 = tf.concat([deconv2, conv2], axis=-1)
-        uconv2 = self.uconv2(uconv2)
-        for block in self.block_u2:
-            uconv2 = block(uconv2, training=training)
+    uconv2 = layers.Conv2D(start_neurons * 2, (3, 3),
+                           activation=None, padding="same")(uconv2)
+    uconv2 = residual_block(uconv2, start_neurons * 2)
+    uconv2 = residual_block(uconv2, start_neurons * 2, True)
 
-        deconv1 = self.deconv1(uconv2)
-        uconv1 = tf.concat([deconv1, conv1], axis=-1)
-        uconv1 = self.uconv1(uconv1)
-        for block in self.block_u1:
-            uconv1 = block(uconv1, training=training)
+    # up 3
+    deconv1 = layers.Conv2DTranspose(
+        start_neurons * 1, (3, 3), strides=(2, 2), padding="same")(uconv2)
+    uconv1 = layers.concatenate([deconv1, conv1])
+    uconv1 = layers.Dropout(dropout_rate)(uconv1)
 
-        # Output
-        output = self.output_layer(uconv1)
-        return output
+    uconv1 = layers.Conv2D(start_neurons * 1, (3, 3),
+                           activation=None, padding="same")(uconv1)
+    uconv1 = residual_block(uconv1, start_neurons * 1)
+    uconv1 = residual_block(uconv1, start_neurons * 1, True)
+
+    # output mask
+    output_layer = layers.Conv2D(
+        2, (1, 1), padding="same", activation=None)(uconv1)
+
+    # 2 classes: character mask & center point mask
+    output_layer = layers.Activation('sigmoid')(output_layer)
+
+    model = models.Model(inputs=[input_layer], outputs=output_layer)
+    return model
+
