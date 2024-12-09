@@ -58,7 +58,7 @@ class JapaneseDataset(tf.keras.utils.Sequence):
         dataset = dataset.map(self.fixup_shape)
         if self.shuffle:
             dataset = dataset.shuffle(buffer_size=100)
-
+        dataset = dataset.repeat() #repeat the dataset infinitely
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         
