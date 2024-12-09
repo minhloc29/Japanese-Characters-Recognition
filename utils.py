@@ -1,7 +1,55 @@
 import tensorflow as tf
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+import csv, json
 import cv2
+
+def visualize_training_data(image_fn,
+                            labels,
+                            width=3,
+                            y_first=False, FONT_SIZE = 100):
+    
+    unicode_map_json = "data/unicode_map.json"
+    with open(unicode_map_json, 'r') as f:
+        unicode_map = json.load(f)
+        
+    labels = np.array(labels.split(' ')).reshape(-1, 5) #divide to list of each bounding box
+    imsource = Image.open(image_fn).convert('RGBA')
+    bbox_canvas = Image.new('RGBA', imsource.size)
+    char_canvas = Image.new('RGBA', imsource.size)
+
+    bbox_draw = ImageDraw.Draw(bbox_canvas)
+    char_draw = ImageDraw.Draw(char_canvas)
+
+    for codepoint, *args in labels: 
+        if y_first:
+            y, x, h, w = args
+        else:
+            x, y, w, h = args
+
+        x, y, w, h = int(x), int(y), int(w), int(h)
+        try:
+            char = unicode_map[codepoint]
+        except KeyError:
+            # some codepoint not exists in unicode_map :/
+            print(codepoint)
+            continue
+        # Draw bounding box around character, and unicode character next to it
+        bbox_draw.rectangle(
+            (x, y, x + w, y + h), fill=(255, 255, 255, 0),
+            outline=(255, 0, 0, 255), width=width
+        )
+        char_draw.text(
+            (x + w + FONT_SIZE / 4, y + h / 2 - FONT_SIZE),
+            char, fill=(0, 0, 255, 255),
+            font = ImageFont.truetype("NotoSansJP-Bold.ttf", FONT_SIZE)
+        )
+    imsource = Image.alpha_composite(
+        Image.alpha_composite(imsource, bbox_canvas), char_canvas)
+    # Remove alpha for saving in jpg format.
+    imsource = imsource.convert("RGB")
+    return np.asarray(imsource)
+                                
 def get_mask(img, labels, img_size = (512, 512)):
     #img: input_shape: W x H x C, original shape without resizing
     mask = np.zeros((img.shape[0], img.shape[1], 2), dtype='float32')
