@@ -38,7 +38,8 @@ class JapaneseDataset(tf.keras.utils.Sequence):
         image_url = image_url.numpy().decode('utf-8')
         label = label.numpy().decode('utf-8')
         image = cv2.imread(image_url) #original image
-        mask = get_mask(img=image, labels=label)  # numpy: 512x512x2
+        mask = get_mask(img=image, labels=label)  
+        mask = cv2.resize(mask, img_size) # numpy: 512x512x2
         image = load_image(image_url)  # numpy: W x H x C, 512x512x3
         
         if self.augment:
