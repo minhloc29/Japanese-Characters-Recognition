@@ -65,7 +65,7 @@ def get_mask(img, labels, img_size = (512, 512)):
             radius = 6
             mask[y + h // 2 - radius: y + h // 2 + radius + 1, 
                  x + w // 2 - radius: x + w // 2 + radius + 1, 1] = 1
-    mask = cv2.resize(mask, img_size)
+
     return mask #numpy: W x H x C
 
 def load_image(img_url, img_size=(512, 512), expand_dim=False):
