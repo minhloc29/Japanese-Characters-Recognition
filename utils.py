@@ -80,3 +80,93 @@ def load_image(img_url, img_size=(512, 512), expand_dim=False):
     if expand_dim:
         img = np.expand_dims(img, axis=0)  # Add batch dimension
     return img #numpy: 512x512x3
+  
+def resize_padding(image_array, desire_size = 64):
+    ratio = desire_size / max(image_array.shape)
+    new_size = tuple([int(dim * ratio) for dim in image_array.shape[:2]])
+    resize_image = cv2.resize(image_array, (new_size[1], new_size[0]))
+    delta_w = desire_size - new_size[1]
+    delta_h = desire_size - new_size[0]
+    top, bottom = delta_h // 2, delta_h - (delta_h // 2)
+    left, right = delta_w // 2, delta_w - (delta_w // 2)
+
+    # make padding
+    color = [0, 0, 0]
+    resize_image = cv2.copyMakeBorder(resize_image, top, bottom, left,
+                                right, cv2.BORDER_CONSTANT, value=color)
+    return resize_image
+
+#segmentation visualization
+def get_centers(mask):
+    """find center points by using contour method
+
+    :return: [(y1, x1), (y2, x2), ...]
+    """
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    centers = []
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        if M['m00'] > 0:
+            cx = M['m10'] / M['m00']
+            cy = M['m01'] / M['m00']
+        else:
+            cx, cy = cnt[0][0]
+        cy = int(np.round(cy))
+        cx = int(np.round(cx))
+        centers.append([cy, cx])
+    centers = np.array(centers)
+    return centers 
+# việc convert về np.uint8 là bắt buộc!
+
+def get_labels(center_coords,
+               pred_bbox):
+    kmeans = KMeans(len(center_coords), init=center_coords)
+    kmeans.fit(center_coords)  # noqa
+
+    x, y = np.where(pred_bbox > 0)
+    pred_cluster = kmeans.predict(list(zip(x, y)))
+
+    pred_bbox_ = copy.deepcopy(pred_bbox)
+    pred_bbox_[x, y] = pred_cluster
+
+    return pred_bbox_
+
+def vis_pred_bbox(pred_bbox, center_coords, image_url = None, width=6):
+    
+
+    bbox_cluster = get_labels(center_coords, pred_bbox)
+    if image_url == None:
+        image = np.zeros((512, 512))
+    else:
+        image = cv2.imread(image_url)[:, :, ::-1]
+        image = cv2.resize(image, (512, 512))
+    pil_img = Image.fromarray(image).convert('RGBA')
+    bbox_canvas = Image.new('RGBA', pil_img.size)
+    bbox_draw = ImageDraw.Draw(bbox_canvas)
+#     center_canvas = Image.new('RGBA', pil_img.size)
+#     center_draw = ImageDraw.Draw(center_canvas)
+
+    # exclude background index
+    for cluster_index in range(len(center_coords))[1:]:
+        char_pixel = (bbox_cluster == cluster_index).astype(np.float32)
+
+        horizontal_indicies = np.where(np.any(char_pixel, axis=0))[0]
+        vertical_indicies = np.where(np.any(char_pixel, axis=1))[0]
+        x_min, x_max = horizontal_indicies[[0, -1]]
+        y_min, y_max = vertical_indicies[[0, -1]]
+
+        # draw polygon
+        bbox_draw.rectangle(
+            (x_min, y_min, x_max, y_max), fill=(255, 255, 255, 0),
+            outline=(255, 0, 0, 255), width=width
+        )
+        # draw center
+
+    res_img = Image.alpha_composite(pil_img, bbox_canvas)
+    res_img = res_img.convert("RGB")
+    res_img = np.asarray(res_img)
+
+    # normalize image
+    res_img = res_img / 255
+    res_img = res_img.astype(np.float32)
+    return res_img
