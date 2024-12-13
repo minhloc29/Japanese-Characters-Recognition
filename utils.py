@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import csv, json
 import cv2
+from sklearn.cluster import KMeans
+import copy
 
 def visualize_training_data(image_fn,
                             labels,
