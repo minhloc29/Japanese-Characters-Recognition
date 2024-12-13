@@ -82,7 +82,8 @@ def load_image(img_url, img_size=(512, 512), expand_dim=False):
     if expand_dim:
         img = np.expand_dims(img, axis=0)  # Add batch dimension
     return img #numpy: 512x512x3
-  
+
+
 def resize_padding(image_array, desire_size = 64):
     ratio = desire_size / max(image_array.shape)
     new_size = tuple([int(dim * ratio) for dim in image_array.shape[:2]])
