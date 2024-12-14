@@ -76,13 +76,13 @@ class ClassifierDataset:
         self.img_size = img_size
         self.shuffle = shuffle
         self.augment = augment
-    
+        self.size = img_size[0]
+        
     def augmentation(self):
         return A.Compose([
         A.RandomBrightnessContrast(
             contrast_limit=0.2, brightness_limit=0.2, p=0.5
         ),  # Adjust lighting variations
-        A.GaussNoise(var_limit=(10, 50), p=0.3),  # Simulate noisy scans or photos
         A.Blur(blur_limit=3, p=0.2),             # Simulate minor blur
         A.Rotate(limit=5, p=0.5),                # Small rotations for robustness
         A.ElasticTransform(alpha=1, sigma=50, alpha_affine=30, p=0.3),  # Distortions for handwriting
@@ -104,7 +104,7 @@ class ClassifierDataset:
         mean = np.mean(image, axis=(0, 1, 2))
         std = np.std(image, axis=(0, 1, 2))
         image = (image - mean) / std
-        image = resize_padding(image, desire_size=64)
+        image = resize_padding(image, desire_size=self.size)
         if self.augment:
             aug = self.augmentation()(image=image)
             image = aug['image']
