@@ -97,14 +97,14 @@ class ClassifierDataset:
         image_url = image_url.numpy().decode('utf-8')
         label = label.numpy()
         label = np.array(label, dtype=np.int32).reshape(1)
-        image = cv2.imread(image_url)
+        image = cv2.imread(image_url)[:,:, ::-1]
         image = image / 255
         image = image.astype('float32')
 
         mean = np.mean(image, axis=(0, 1, 2))
         std = np.std(image, axis=(0, 1, 2))
         image = (image - mean) / std
-        image = resize_padding(image, desire_size=self.size)
+        image = resize_padding(image, self.size)
         if self.augment:
             aug = self.augmentation()(image=image)
             image = aug['image']
