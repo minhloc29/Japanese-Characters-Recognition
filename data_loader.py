@@ -77,7 +77,7 @@ class ClassifierDataset:
         self.shuffle = shuffle
         self.augment = augment
         self.size = img_size[0]
-        
+        self.num_classes = 2028
     def augmentation(self):
         return A.Compose([
         A.RandomBrightnessContrast(
@@ -90,12 +90,14 @@ class ClassifierDataset:
         
     def fixup_shape(self, image, label):
         image.set_shape([*self.img_size, 3])
-        label.set_shape([1])
+        label.set_shape([self.num_classes])
         return image, label
     
     def process_data(self, image_url, label):
         image_url = image_url.numpy().decode('utf-8')
         label = label.numpy()
+        label = np.array(label, dtype=np.int32).reshape(1)
+        one_hot_label = np.eye(self.num_classes)[label].reshape(-1)
         label = np.array(label, dtype=np.int32).reshape(1)
         image = cv2.imread(image_url)[:,:, ::-1]
         image = image / 255
@@ -109,7 +111,7 @@ class ClassifierDataset:
             aug = self.augmentation()(image=image)
             image = aug['image']
         #normalize data
-        return image, label
+        return image, one_hot_label
     
     def create_tf_dataset(self):
         dataset = tf.data.Dataset.from_tensor_slices((self.image_urls, self.labels))
