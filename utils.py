@@ -173,3 +173,17 @@ def vis_pred_bbox(pred_bbox, center_coords, image_url = None, width=6):
     res_img = res_img / 255
     res_img = res_img.astype(np.float32)
     return res_img
+
+def visualize_in_batches():
+    jp_font = fm.FontProperties(fname="NotoSansJP-Bold.ttf")
+    log = pd.read_csv("data/reduce_classifier.csv")
+    sample = log.sample(16)
+    image_urls, chars = sample['image_urls'].to_list(), sample['char'].to_list()
+    titles = log[:16]['char'].to_list()
+    fig, ax = plt.subplots(nrows=4, ncols=4, figsize = (20, 20))
+    ax = ax.flatten() 
+    for i in range(16):
+        image = cv2.imread(image_urls[i])[:, :, ::-1]
+        ax[i].set_title(titles[i], fontproperties = jp_font)
+        ax[i].imshow(image)
+    plt.show()
