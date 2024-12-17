@@ -7,4 +7,5 @@ shapely
 tqdm
 tensorflow
 matplotlib
-sklearn
+scikit-learn
+
