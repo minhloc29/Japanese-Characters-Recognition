@@ -1,0 +1,7 @@
+albumentations
+opencv-python
+streamlit
+watchdog
+scikit-image
+shapely
+tqdm
