@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf.keras.losses import CategoricalFocalCrossentropy 
+from tensorflow.keras.losses import CategoricalFocalCrossentropy 
 
 def dice_coef(y_true, y_pred, threshold=0.5, epsilon=1e-6):
     y_true_f = tf.reshape(y_true, [-1])
