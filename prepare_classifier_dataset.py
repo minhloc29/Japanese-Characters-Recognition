@@ -1,6 +1,6 @@
 #This code recreate the process of cropping images to multiple small labels
 count_url = 0
-from utils import load_image, get_mask, visualize_training_data
+from my_utils import load_image, get_mask, visualize_training_data
 import pandas as pd
 import numpy as np
 import os
