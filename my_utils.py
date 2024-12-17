@@ -12,7 +12,7 @@ from shapely.geometry import Polygon, Point
 import time
 import math
 import functools
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from parameters import FONT, FONT_SIZE
 from matplotlib import font_manager as fm
 from losses_and_metrics import bce_dice_loss, dice_coef, iou_score
