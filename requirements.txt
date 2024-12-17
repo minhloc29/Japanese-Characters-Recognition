@@ -1,5 +1,5 @@
 albumentations
-opencv-python
+opencv-python-headless
 streamlit
 watchdog
 scikit-image
