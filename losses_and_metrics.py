@@ -32,3 +32,15 @@ def bce_dice_loss(y_true, y_pred):
     bce = bce_loss(y_true, y_pred)
     dice = dice_loss(y_true, y_pred)
     return bce + dice
+
+#Classifier
+def focal_loss():
+    return CategoricalFocalCrossentropy(
+    alpha=0.25,
+    gamma=2.0,
+    from_logits=False,
+    label_smoothing=0.0,
+    axis=-1,
+    reduction='sum_over_batch_size',
+    name='categorical_focal_crossentropy'
+)
