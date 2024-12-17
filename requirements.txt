@@ -7,3 +7,4 @@ shapely
 tqdm
 tensorflow
 matplotlib
+sklearn
