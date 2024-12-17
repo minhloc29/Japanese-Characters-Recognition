@@ -410,11 +410,11 @@ def get_result(image_url, bbox_thres = 0.01, center_thres = 0.02, FONT = FONT, F
     with open("data/classifier_labels.json", 'r') as f:
         cls_labels = json.load(f)
 
-    seg_model = tf.keras.models.load_model('Models/Segmentation/model.keras',
+    seg_model = tf.keras.models.load_model('models/segmentation/model.keras',
                                    custom_objects = {"dice_coef": dice_coef, 
                                                      "iou_score": iou_score,
                                                      "bce_dice_loss": bce_dice_loss})
-    cls_model = tf.keras.models.load_model("Models/Classification/model.keras")
+    cls_model = tf.keras.models.load_model("models/classification/model.keras")
     
     font = ImageFont.truetype(
     FONT, FONT_SIZE, encoding="utf-8"
