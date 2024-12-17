@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import albumentations as A
 import random
-from utils import get_mask, load_image, resize_padding
+from my_utils import get_mask, load_image, resize_padding
 #dataset for segmentation
 class JapaneseDataset:
     def __init__(self, image_urls, labels, batch_size, input_channels=3, img_size=(512, 512), n_classes=2, augment=False, shuffle=True):
