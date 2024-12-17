@@ -5,3 +5,4 @@ watchdog
 scikit-image
 shapely
 tqdm
+tensorflow
