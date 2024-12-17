@@ -5,8 +5,6 @@ from PIL import Image, ImageOps
 import numpy as np
 from utils import get_result
 import warnings
-import base64
-from io import StringIO
 import time
 warnings.filterwarnings("ignore")
 
