@@ -43,6 +43,7 @@ To run the Streamlit app for real-time predictions:
 ```bash
 streamlit run src/stream.py
 ```
+Or visit my app launched at: [JCR_App](https://japanese-characters-recognition-okyzfu6t9bxypcpveiwhwn.streamlit.app/)
 ### Making Predictions
 Upload an image of a Japanese character, the app will display the recognized characters belong the original ones.
 
