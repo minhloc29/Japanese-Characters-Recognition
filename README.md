@@ -16,4 +16,5 @@ Japanese Character Recognition is a deep learning project focused on recognizing
 This project uses datasets containing thousands of handwritten and printed Japanese pages from Kaggle.
 
 ### **Source**
-You can find the dataset at [Kaggle](https://www.kaggle.com/). *(Add the specific dataset name or URL here if necessary)*
+- Segmentation task: [Segmenation Dataset](https://www.kaggle.com/datasets/minhlcnguyn/train-images)
+- Classification task: [Classification Dataset](https://www.kaggle.com/datasets/minhlcnguyn/japanese-classification)
