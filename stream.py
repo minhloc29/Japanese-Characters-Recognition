@@ -3,7 +3,7 @@ import tensorflow as tf
 import random
 from PIL import Image, ImageOps
 import numpy as np
-from my_utils import get_result
+from src.my_utils import get_result
 import warnings
 import time
 warnings.filterwarnings("ignore")
