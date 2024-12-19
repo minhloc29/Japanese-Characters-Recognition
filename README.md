@@ -20,3 +20,14 @@ This project uses datasets containing thousands of handwritten and printed Japan
 - Classification task: [Classification Dataset](https://www.kaggle.com/datasets/minhlcnguyn/japanese-classification)
 
 ## Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
+- Streamlit
+
+### Step
+1. Clone the repository:
+```bash
+git clone https://github.com/user/repository.git](https://github.com/minhloc29/Japanese-Characters-Recognition.git
+cd Japanese-Characters-Recognition
