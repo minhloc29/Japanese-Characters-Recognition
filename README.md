@@ -41,7 +41,7 @@ pip install -r requirements.txt
 ## Usage
 To run the Streamlit app for real-time predictions: 
 ```bash
-streamlit run stream.py
+streamlit run src/stream.py
 ```
 ### Making Predictions
 Upload an image of a Japanese character, the app will display the recognized characters belong the original ones.
