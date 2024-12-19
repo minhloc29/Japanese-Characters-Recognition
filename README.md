@@ -48,5 +48,19 @@ Upload an image of a Japanese character, the app will display the recognized cha
 
 ## Project Structure
 
-japanese-character-recognition/ ├── data/ # Dataset directory │ ├── raw/ # Raw dataset files │ ├── processed/ # Preprocessed data ├── models/ # Saved model files ├── src/ # Source code │ ├── train.py # Script to train the model │ ├── evaluate.py # Script to evaluate the model │ ├── preprocess.py # Data preprocessing scripts │ ├── my_utils.py # Utility functions ├── tests/ # Unit test files │ ├── test_utils.py # Tests for utilities │ ├── test_model.py # Tests for model components ├── stream.py # Streamlit app for predictions ├── config.py # Configuration file for paths and settings ├── requirements.txt # Python dependencies ├── README.md # Project documentation └── LICENSE # License file
-
+```bash
+japanese-character-recognition/
+├── data/                            # Dataset directory
+├── models/                          # Saved model files
+├── src/                             # Source code
+│   ├── segmentation_train.py        # Script to train the segmentation model
+│   ├── japanese_classifier.py       # Script to train the classification model
+│   ├── losses_and_metrics.py        # Script for losses and metrics used
+│   ├── data_loader.py               # Data preprocessing scripts
+│   ├── my_utils.py                  # Utility functions
+│   ├── parameters.py                # All parameters used
+│   ├── stream.py                    # Streamlit app for predictions
+├── packages.txt                     # Configuration file for paths and settings
+├── requirements.txt                 # Python dependencies
+├── README.md                        # Project documentation
+└── .gitattributes            
